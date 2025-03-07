@@ -217,6 +217,24 @@ void q_reverseK(struct list_head *head, int k)
     list_splice(&store, head);
 }
 
+void mergeTwoLists(struct list_head *L1, struct list_head *L2, bool descend)
+{
+    if (!L1 || !L2)
+        return;
+    struct list_head head;
+    INIT_LIST_HEAD(&head);
+    while (!list_empty(L1) && !list_empty(L2)) {
+        element_t *e1 = list_first_entry(L1, element_t, list);
+        element_t *e2 = list_first_entry(L2, element_t, list);
+        struct list_head *node = (descend ^ (strcmp(e1->value, e2->value) < 0))
+                                     ? L1->next
+                                     : L2->next;
+        list_move_tail(node, &head);
+    }
+    list_splice_tail_init(list_empty(L1) ? L2 : L1, &head);
+    list_splice(&head, L1);
+}
+
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend) {}
 /* Remove every node which has a node with a strictly less value anywhere to
