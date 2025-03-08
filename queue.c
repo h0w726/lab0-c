@@ -97,8 +97,8 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 
     list_del(&last->list);
     if (sp) {
-        sp = strncpy(sp, last->value, strlen(last->value));
-        sp[strlen(last->value)] = '\0';
+        sp = strncpy(sp, last->value, bufsize);
+        sp[bufsize - 1] = '\0';
     }
     return last;
 }
