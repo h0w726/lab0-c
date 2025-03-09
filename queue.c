@@ -319,3 +319,27 @@ int q_merge(struct list_head *head, bool descend)
     return first->size;
     // https://leetcode.com/problems/merge-k-sorted-lists/
 }
+
+void q_shuffle(struct list_head *head)
+{
+    int len = q_size(head);
+    struct list_head *old = NULL;
+    struct list_head *new = head->prev;
+
+    while (len) {
+        int random = rand() % len;
+        old = head->next;
+        while (random--)
+            old = old->next;
+
+        element_t *e_old = list_entry(old, element_t, list);
+        element_t *e_new = list_entry(new, element_t, list);
+
+        char *temp = e_old->value;
+        e_old->value = e_new->value;
+        e_new->value = temp;
+
+        new = new->prev;
+        len--;
+    }
+}
