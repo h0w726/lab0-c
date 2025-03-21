@@ -64,14 +64,15 @@ static void differentiate(int64_t *exec_times,
         exec_times[i] = after_ticks[i] - before_ticks[i];
 }
 
-static void update_statistics(const int64_t *exec_times, uint8_t *classes)
+static void update_statistics(const int64_t *exec_times,
+                              uint8_t *classes,
+                              int64_t *percentiles)
 {
     for (size_t i = 0; i < N_MEASURES; i++) {
         int64_t difference = exec_times[i];
         /* CPU cycle counter overflowed or dropped measurement */
-        if (difference <= 0)
+        if (difference > *percentiles)
             continue;
-
         /* do a t-test on the execution time */
         t_push(t, difference, classes[i]);
     }
@@ -95,12 +96,10 @@ static void prepare_percentiles(int64_t *exec_times, int64_t *percentiles)
 {
     qsort(exec_times, N_MEASURES, sizeof(int64_t),
           (int (*)(const void *, const void *)) cmp);
-    for (size_t i = 0; i < DUDECT_NUMBER_PERCENTILES; i++) {
-        percentiles[i] = percentile(
-            exec_times,
-            1 - (pow(0.5, 10 * (double) (i + 1) / DUDECT_NUMBER_PERCENTILES)),
-            N_MEASURES);
-    }
+    *percentiles = percentile(
+        exec_times,
+        1 - (pow(0.5, 10 * (double) (66 + 1) / DUDECT_NUMBER_PERCENTILES)),
+        N_MEASURES);
 }
 static bool report(void)
 {
@@ -146,7 +145,7 @@ static bool doit(int mode)
     int64_t *before_ticks = calloc(N_MEASURES + 1, sizeof(int64_t));
     int64_t *after_ticks = calloc(N_MEASURES + 1, sizeof(int64_t));
     int64_t *exec_times = calloc(N_MEASURES, sizeof(int64_t));
-    int64_t *percentiles = calloc(N_MEASURES, sizeof(int64_t));
+    int64_t *percentiles = calloc(1, sizeof(int64_t));
     uint8_t *classes = calloc(N_MEASURES, sizeof(uint8_t));
     uint8_t *input_data = calloc(N_MEASURES * CHUNK_SIZE, sizeof(uint8_t));
 
@@ -158,16 +157,11 @@ static bool doit(int mode)
     prepare_inputs(input_data, classes);
 
     bool ret = measure(before_ticks, after_ticks, input_data, mode);
-    bool first_time = percentiles[DUDECT_NUMBER_PERCENTILES - 1] == 0;
     differentiate(exec_times, before_ticks, after_ticks);
-    if (first_time) {
-        // throw away the first batch of measurements.
-        // this helps warming things up.
-        prepare_percentiles(exec_times, percentiles);
-    } else {
-        update_statistics(exec_times, classes);
-        ret &= report();
-    }
+    prepare_percentiles(exec_times, percentiles);
+    update_statistics(exec_times, classes, percentiles);
+    ret &= report();
+
     free(before_ticks);
     free(after_ticks);
     free(exec_times);
