@@ -86,6 +86,7 @@ typedef enum {
 /* Forward declarations */
 static bool q_show(int vlevel);
 void q_shuffle(struct list_head *head);
+uintptr_t os_random(uintptr_t seed);
 static bool do_free(int argc, char *argv[])
 {
     if (argc != 1) {
@@ -1069,8 +1070,10 @@ static bool do_shuffle(int argc, char *argv[])
 
 
     set_noallocate_mode(true);
-    if (exception_setup(true))
+    if (exception_setup(true)) {
+        srand(os_random(getpid() ^ getppid()));
         q_shuffle(current->q);
+    }
     exception_cancel();
 
     set_noallocate_mode(false);
@@ -1440,7 +1443,7 @@ int main(int argc, char *argv[])
     /* A better seed can be obtained by combining getpid() and its parent ID
      * with the Unix time.
      */
-    srand(os_random(getpid() ^ getppid()));
+    // srand(os_random(getpid() ^ getppid()));
 
     q_init();
     init_cmd();
